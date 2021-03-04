@@ -44,6 +44,8 @@ class AnotatorController():
         collection.load_dir(baseline_collection)
         collection.load_dir(closed_packs_path)
 
+        self.collection = collection
+
         self.annotator = sentence_annotator
         if self.annotator is None:
             self.annotator = SentencesAnnotator.generated_classifier_from_dataset(
@@ -95,10 +97,9 @@ class AnotatorController():
         self.build_pack(dest_folder / (pack_name), pack_name, selected)
 
     def close_pack(self, path: Path):
-        collection = Collection()
-        collection.load_dir(path)
+        self.collection.load_dir(path)
 
-        self.annotator.fit(collection)
+        self.annotator.fit(self.collection)
 
         shutil.move(str(path), str(self.closed_packs_path))
         logger.info(
