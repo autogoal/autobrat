@@ -104,7 +104,7 @@ class AnotatorController():
         if set_procesed:
             self.update_selected(selected)
 
-        return [s[0] for s in sentences]
+        return [s for s in selected]
 
     def close_pack(self, path: Path):
         collection = Collection()

@@ -25,6 +25,7 @@ class Experimentator(object):
         lines, classes = load_training_entities(corpus)
         self.unique_clases = reduce(lambda x, y: x | y,
                                     [set(c) for c in classes])
+        print(self.unique_clases)
 
         self.train_data = {
             sentence.text: ([w.text for w in line], category)
@@ -56,8 +57,6 @@ class Experimentator(object):
         score_data = subtaskA(self.test, submit)
         metrics = compute_metrics(score_data, skipB=True, skipC=True)
         logger.info(f'Score: {metrics}')
-        print(metrics)
-        print(len(submit), len(self.test))
         return metrics['f1']
 
     def run_experiment(self,
@@ -69,12 +68,11 @@ class Experimentator(object):
 
         scores = []
         # while sentences
-
         sentences = controller.get_batch(batch_size)
         while sentences:
             self.sentences_to_train.extend(sentences)
             lines, classes = [], []
-            for s in sentences:
+            for s in self.sentences_to_train:
                 line, cls = self.train_data[s]
                 lines.append(line)
                 classes.append(cls)
@@ -95,3 +93,17 @@ class Experimentator(object):
             sentences = controller.get_batch(batch_size)
 
         return scores
+
+    def train_with_all(self):
+        controller = AnotatorController(self.sentences,
+                                self.original_corpus,
+                                db_path=Path('fullcorpus.json'))
+        sentences = []
+        predictions = controller.annotator.final_prediction([s for s in self.test_spacy_doc])
+        for (s, spacy_doc), prediction in zip(self.test_spacy_doc.items(), predictions):
+            sentence = make_sentence(spacy_doc, prediction, self.unique_clases)
+            sentence.fix_ids()
+            sentences.append(sentence)
+
+        predicted_collection = Collection(sentences)
+        return self.score(predicted_collection)
