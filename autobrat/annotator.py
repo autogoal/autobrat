@@ -46,7 +46,7 @@ class SentencesAnnotator(object):
 
     def get_classifications(self, text: str):
         parsed_sentence = [w.text for w in self.nlp(text)]
-        print(parsed_sentence)
+        # print(parsed_sentence)
         ans = []
         for classifier in self.models:
             prediction = classifier.predict([parsed_sentence])
@@ -63,6 +63,19 @@ class SentencesAnnotator(object):
         for prediction in predictions:
             for i, categorie in enumerate(prediction):
                 ans[i][categorie] += 1 / len(predictions)
+
+        return ans
+
+    def final_prediction(self, texts: List[str]):
+        predictions = self.predict(texts)
+        probs = [self.get_probs(p) for p in predictions]
+
+        ans = []
+        for sentence in probs:
+            ans.append([])
+            for term in sentence:
+                m = max( term.items(),key=lambda x: x[1])
+                ans[-1].append(m[0])
 
         return ans
 
@@ -106,5 +119,10 @@ class SentencesAnnotator(object):
         lines, classes = load_training_entities(data)
         lines = [[w.text for w in l] for l in lines]
 
+        return self.fit_classes(lines, classes)
+
+    def fit_classes(self, lines, classes):
         for model in self.models:
-            model.fit(lines, classes)
+            model.best_pipeline_.send('train')
+            model.best_pipeline_.run((lines, classes))
+            model.best_pipeline_.send('eval')
